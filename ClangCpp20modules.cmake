@@ -19,7 +19,6 @@ set(PREBUILT_MODULE_EXECUTABLE_PATH
     CACHE INTERNAL
     "PREBUILT_MODULE_EXECUTABLE_PATH")
 
-
 function(get_modules_flags imp_modules_flags modules)
 
     set(flags "")
@@ -33,7 +32,6 @@ function(get_modules_flags imp_modules_flags modules)
 
 endfunction()
 
-
 function(add_implementations out_objects)
 
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_IMPLEMENTATION_PATH})
@@ -42,7 +40,7 @@ function(add_implementations out_objects)
     cmake_parse_arguments(OBJ "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
 
-    # ---- Add flags to include input module interfaces TODO to be tested
+    # ---- Add flags to include input module interfaces
     set(import_modules_flags "")
     if ("${OBJ_MODULES}" STREQUAL "")
         # Do nothing
@@ -50,7 +48,7 @@ function(add_implementations out_objects)
         get_modules_flags(import_modules_flags ${OBJ_MODULES})
     endif()
 
-    # ---- Add flags to include dirs with headers TODO to be tested
+    # ---- Add flags to include dirs with headers
     set(include_flags "")
     if ("${OBJ_INCLUDE_DIRS}" STREQUAL "")
         # Do nothing
@@ -80,7 +78,7 @@ function(add_implementations out_objects)
 
         # ---- These objects depend on precompiled module interfaces
         foreach(IMPORT_MODULE ${OBJ_MODULES})
-            add_dependencies(${SRC}.o "${IMPORT_MODULE}.pcm") # external
+            add_dependencies(${SRC}.o "${IMPORT_MODULE}.pcm")
         endforeach()
 
     endforeach()
@@ -89,19 +87,15 @@ function(add_implementations out_objects)
 
 endfunction()
 
-
 function(get_include_flags inc_dirs out)
 
     foreach(INPUT_DIR ${inc_dirs})
         list(APPEND inc_flags "-I${CMAKE_SOURCE_DIR}/${INPUT_DIR}")
     endforeach()
 
-    message(STATUS "OUT include flags: ${out}")
-
     set(${out} ${inc_flags} PARENT_SCOPE)
 
 endfunction()
-
 
 function(add_module_interface module)
 
@@ -146,7 +140,6 @@ function(add_module_interface module)
 
 endfunction()
 
-
 function(add_module_implementations module)
 
     # set(options OPT1 OPT2)
@@ -155,7 +148,6 @@ function(add_module_implementations module)
 
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
-
 
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_IMPLEMENTATION_PATH})
 
@@ -180,9 +172,7 @@ function(add_module_implementations module)
 
 endfunction()
 
-
 function(add_module module_name)
-
 
     # set(options OPTIONAL FAST)
     set(oneValueArgs INTERFACE)
@@ -218,20 +208,19 @@ function(add_module module_name)
 
 endfunction()
 
-
 function(add_target_from_modules target_name)
 
     # set(options OPTIONAL FAST)
     set(oneValueArgs TYPE)
     set(multiValueArgs IMPLEMENTATIONS MODULES INCLUDE_DIRS LIBRARIES)
 
-
     cmake_parse_arguments(TARGET
         "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGV})
 
     message(STATUS "Adding `${TARGET_TYPE}` target")
 
-    # ---- For each input module Add objects to link (precompiled interface and object module implementations)
+    # ---- For each input module, add objects to link
+    # (precompiled interface and object module implementations)
     foreach(INPUT_MOD ${TARGET_MODULES})
         get_property(module_objects
             GLOBAL PROPERTY
@@ -275,7 +264,6 @@ function(add_target_from_modules target_name)
     else()
         message(FATAL_ERROR "Unknown type ${TARGET_TYPE}")
     endif()
-
 
     # ---- Create list of precompiled modules
     foreach(PCM ${list_link_pcms})
@@ -338,12 +326,9 @@ function(add_target_from_modules target_name)
         add_dependencies(${target_name} ${INPUT_OBJ})
     endforeach()
 
-    # add_dependencies(${target_name} ${target_binary})
-
     set(target2binary_${target_name}
         ${target_binary}
         CACHE INTERNAL
         "target2binary_${target_name}")
 
 endfunction()
-
