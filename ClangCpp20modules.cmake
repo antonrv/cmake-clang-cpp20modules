@@ -78,6 +78,7 @@ function(add_implementations out_objects)
             -std=c++20
             -stdlib=libc++
             -fmodules
+            -fPIC
             "${import_modules_flags}"
             "${include_flags}"
             -c ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
@@ -145,6 +146,7 @@ function(add_module_interface module)
         -std=c++20
         -stdlib=libc++
         -fmodules
+        -fPIC
         --precompile ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}
         ${link_pcms}
         -o ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm
@@ -257,16 +259,6 @@ function(add_target_from_modules target_name)
         endforeach()
     endforeach()
 
-    # ---- For each source, add objects to the list of linkable objects
-    set(in_objs "")
-    add_implementations(in_objs
-        SOURCES
-        ${TARGET_SOURCES} DEPENDS ${TARGET_DEPENDS} INCLUDES
-        ${TARGET_INCLUDES})
-
-    foreach(in_obj ${in_objs})
-        list(APPEND list_link_objects "${in_obj}")
-    endforeach()
 
     # ---- Specific info depending on TARGET_TYPE
     if ("${TARGET_TYPE}" STREQUAL "library")
@@ -287,6 +279,19 @@ function(add_target_from_modules target_name)
     else()
         message(FATAL_ERROR "Unknown type ${TARGET_TYPE}")
     endif()
+
+    # ---- For each source, add objects to the list of linkable objects
+    set(in_objs "")
+    add_implementations(in_objs
+        SOURCES
+        ${TARGET_SOURCES}
+        DEPENDS ${TARGET_DEPENDS}
+        INCLUDES
+        ${TARGET_INCLUDES})
+
+    foreach(in_obj ${in_objs})
+        list(APPEND list_link_objects "${in_obj}")
+    endforeach()
 
     # ---- Create list of precompiled modules
     foreach(PCM ${list_link_pcms})
