@@ -10,15 +10,15 @@ include(../../ClangCpp20modules.cmake)
 
 add_module(helloworld
     INTERFACE
-    helloworld.cppm
+    api/helloworld.cppm
     )
 
 add_target_from_modules(
     main
     TYPE
     executable
-    IMPLEMENTATIONS
-    main.cpp
-    MODULES
+    SOURCES
+    entry/main.cpp
+    DEPENDS
     helloworld
 )

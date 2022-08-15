@@ -10,19 +10,19 @@ include(../../ClangCpp20modules.cmake)
 
 add_module(helloworld
     INTERFACE
-    helloworld.cppm
-    IMPLEMENTATIONS
-    helloworld.cpp
-    INCLUDE_DIRS
-    inc_dir/
+    api/helloworld.cppm
+    SOURCES
+    src/helloworld.cpp
+    INCLUDES
+    include/
     )
 
 add_target_from_modules(
     libhw
     TYPE
     library
-    IMPLEMENTATIONS
-    MODULES
+    SOURCES
+    DEPENDS
     helloworld
 )
 
@@ -30,8 +30,8 @@ add_target_from_modules(
     main
     TYPE
     executable
-    IMPLEMENTATIONS
-    main.cpp
-    MODULES
+    SOURCES
+    entry/main.cpp
+    DEPENDS
     helloworld
 )

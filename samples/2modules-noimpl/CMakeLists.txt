@@ -10,22 +10,22 @@ include(../../ClangCpp20modules.cmake)
 
 add_module(foo
     INTERFACE
-    foo.cppm
+    api/foo.cppm
     )
 
 add_module(bar
     INTERFACE
-    bar.cppm
-    MODULES
+    api/bar.cppm
+    DEPENDS
     foo)
 
 add_target_from_modules(
     main
     TYPE
     executable
-    IMPLEMENTATIONS
+    SOURCES
     main.cpp
-    MODULES
+    DEPENDS
     bar
     foo
 )

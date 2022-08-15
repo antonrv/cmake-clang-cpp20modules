@@ -35,17 +35,17 @@ This function compiles sources of a module (a single interface and multiple impl
 ```cmake
 add_module(
     <MODULE_NAME> # Whatever module name
-    INTERFACE # single source file with interface
+    INTERFACE # single module interface source file
     <MODULE_INTERFACE_FILE>
-    IMPLEMENTATIONS # source files implementing
+    SOURCES # several module implementation source files
     <MODULE_IMPLEMENTATION_FILE1>
     <MODULE_IMPLEMENTATION_FILE2>
     <...>
-    MODULES # modules on which <MODULE_NAME> depends
+    DEPENDS # names of modules on which <MODULE_NAME> depends
     <INPUT_MODULE_NAME1>
     <INPUT_MODULE_NAME2>
     <...>
-    INCLUDE_DIRS # directories holding header files
+    INCLUDES # directories holding header files
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
     <...>)
@@ -60,15 +60,15 @@ add_target_from_modules(
     <TARGET_NAME> # Whatever target name
     TYPE
     <TARGET_TYPE> # Either "executable" or "library"
-    IMPLEMENTATIONS # Sources directly implementing the target
+    SOURCES # Sources directly implementing the target
     <TARGET_IMPLEMENTATION_FILE1>
     <TARGET_IMPLEMENTATION_FILE2>
     <...>
-    MODULES # modules on which <TARGET_NAME> depends
+    DEPENDS # names of modules on which <TARGET_NAME> depends
     <INPUT_MODULE_NAME1>
     <INPUT_MODULE_NAME2>
     <...>
-    INCLUDE_DIRS # directories holding header files
+    INCLUDES # directories holding header files
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
     <...>)
