@@ -1,6 +1,6 @@
 
 set(PREBUILT_MODULE_INTERFACE_PATH 
-    ${CMAKE_BINARY_DIR}/modules/intf 
+    ${CMAKE_BINARY_DIR}/modules/api
     CACHE INTERNAL
     "PREBUILT_MODULE_INTERFACE_PATH")
 
@@ -193,7 +193,7 @@ function(add_module module_name)
 
     # set(options OPTIONAL FAST)
     set(oneValueArgs INTERFACE)
-    set(multiValueArgs SOURCES DEPENDS INCLUDES)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES TYPE)
 
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
@@ -227,7 +227,15 @@ function(add_module module_name)
         GLOBAL PROPERTY
         module2implementations_${module_name})
 
-    add_custom_target(${module_name}
+    if ("${MODULE_TYPE}" STREQUAL "PUBLIC")
+        set(asAll "ALL")
+    elseif ("${MODULE_TYPE}" STREQUAL "PRIVATE")
+        set(asAll "")
+    elseif ("${MODULE_TYPE}" STREQUAL "")
+        set(asAll "")
+    endif()
+
+    add_custom_target(${module_name} ${asAll}
         DEPENDS
         ${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${module_name}}
         ${impls}

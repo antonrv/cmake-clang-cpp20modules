@@ -48,7 +48,10 @@ add_module(
     INCLUDES # directories holding header files
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
-    <...>)
+    <...>
+    TYPE # If PUBLIC, interface will be compiled always (as an ALL target)
+    <PUBLIC|PRIVATE|>
+    )
 ```
 
 ### `add_target_from_modules`
