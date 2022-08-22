@@ -31,7 +31,7 @@ for sample_dir in samples/*/ ; do
     mkdir -p $SAMPLE_BUILD_DIR_FULL
     cd $SAMPLE_BUILD_DIR_FULL
 
-    out_cmake=$(cmake ${SAMPLE_DIR_FULL})
+    out_cmake=$(cmake ${SAMPLE_DIR_FULL} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
     if [ "$?" -ne 0 ]; then
         err_print ${sample_dir} "cmake" "$out_cmake"
         break
@@ -40,7 +40,26 @@ for sample_dir in samples/*/ ; do
         # echo "cmake OK"
     fi
 
-    out_make=$(make)
+    out_jq=$(jq -n '[ inputs | add ]' ${SAMPLE_BUILD_DIR_FULL}/modules/intf/api/*.cmd > ${SAMPLE_BUILD_DIR_FULL}/compile_commands.json)
+    if [ "$?" -ne 0 ]; then
+        err_print "jq" "$out_jq"
+        break
+    else
+        :
+        # echo "jq OK"
+    fi
+
+    out_ln=$(ln -s ${SAMPLE_BUILD_DIR_FULL}/compile_commands.json ${SAMPLE_DIR_FULL}/compile_commands.json)
+    if [ "$?" -ne 0 ]; then
+        :
+        # err_print "ln" "$out_ln"  # Dont report it, usually symlink already exists in this case
+        # break
+    else
+        :
+        # echo "make OK"
+    fi
+
+    out_make=$(bear --append --output ${SAMPLE_BUILD_DIR_FULL}/compile_commands.json -- make)
     if [ "$?" -ne 0 ]; then
         err_print "make" "$out_make"
         break

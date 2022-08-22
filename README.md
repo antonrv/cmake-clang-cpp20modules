@@ -9,9 +9,14 @@ So current project will be deprecated as soon as CMake adds full support for C++
 
 ## Requirements
 
+### Mandatory
 * cmake
 * clang with C++20 modules support
 * Development clang libraries
+
+### Optional
+* bear, to generate compilation commands database
+* jq to concatenate compilation commands from precompiled modules
 
 ```
 sudo apt install clang libc++-dev clang-libc++-abi libc++abi-dev -y
@@ -22,11 +27,17 @@ Tested on:
 * ubuntu 22.04
 * cmake 3.22.1
 * clang 14
+* bear 3.0.18
+* jq 1.6
 
 ## API
 
 The API consists on just two functions: `add_module` and `add_target_from_modules`.
 See `CMakeLists.txt` scripts in each folder in `samples/` for usage examples.
+
+Enabling `CMAKE_EXPORT_COMPILE_COMMANDS` will output a `compile_commands.json` with
+compilation commands **for precompiled modules** only, as it is pending to be
+also implemented for intermediate objects, library objects and executable targets.
 
 ### `add_module`
 
@@ -88,6 +99,9 @@ Bash script `test.sh` and loops over all samples, for each one running following
 * `cmake` to test correctness of CMakeLists.txt script
 * `make` to assert correct compilation
 * `main` to run the final sample executable from source entry point, expecting no errors.
+
+Note that `bear` and `jq` programs are used to output compile commands, so that we can benefit from LSP clangd while developing.
+Omit those commands from the test script (ie, just call `make` instead of `bear --append -- make`, and remove `jq` command).
 
 After cloning and `cd` into repo, just run the test script:
 

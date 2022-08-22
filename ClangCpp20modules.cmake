@@ -1,6 +1,6 @@
 
 set(PREBUILT_MODULE_INTERFACE_PATH 
-    ${CMAKE_BINARY_DIR}/modules/api
+    ${CMAKE_BINARY_DIR}/modules/intf
     CACHE INTERNAL
     "PREBUILT_MODULE_INTERFACE_PATH")
 
@@ -153,6 +153,33 @@ function(add_module_interface module)
         DEPENDS
         ${list_pcms}
         )
+
+    if ("${CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "ON")
+        message(STATUS "ECHOING")
+
+        file(WRITE
+            ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.cmd
+            "[\n"
+            "    {\n"
+            "        \"arguments\": [\n"
+            "            \"${CMAKE_CXX_COMPILER}\",\n"
+            "            \"-std=c++20\",\n"
+            "            \"-stdlib=libc++\",\n"
+            "            \"-fmodules\",\n"
+            "            \"-fPIC\",\n"
+            "            \"--precompile\",\n"
+            "            \"${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
+            "            \"${link_pcms}\",\n"
+            "            \"-o\",\n"
+            "            \"${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm\"\n"
+            "        ],\n"
+            "        \"directory\": \"${CMAKE_BINARY_DIR}\",\n"
+            "        \"file\": \"${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
+            "        \"output\": \"${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm\"\n"
+            "    }\n"
+            "]\n")
+
+    endif()
 
     set(module2interface_${module} 
         ${MODULE_INTERFACE}.pcm
