@@ -105,6 +105,8 @@ function(add_implementations out_objects)
             -o "${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o"
             DEPENDS
             ${module2interface_${IMPORT_MODULE}}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
+            # TODO all imported module interfaces
             )
 
         list(APPEND
@@ -176,11 +178,11 @@ function(add_module_interface module_name)
         ${link_pcms}
         -o ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm
         DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}
         ${list_pcms}
         )
 
     if ("${CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "ON")
-        message(STATUS "ECHOING")
 
         file(WRITE
             ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.cmd
@@ -321,7 +323,8 @@ function(register_module module_name)
         set(library2linkflag_${MODULE_LIBRARY}
             "-l${MODULE_LIBRARY}"
             CACHE INTERNAL
-            "library2linkflag_${target_name}")
+            "library2linkflag_${MODULE_LIBRARY}")
+        add_custom_target(${MODULE_LIBRARY} ${asAll})
     endif()
 
     if ("${MODULE_LIBRARY_DIR}" STREQUAL "")
@@ -333,7 +336,11 @@ function(register_module module_name)
             "library2directory_${MODULE_LIBRARY}")
     endif()
 
-    message(STATUS "Registering installed module `${module_name}` with interface ${MODULE_INTERFACE}, library `${MODULE_LIBRARY}`, within directory: `${MODULE_LIBRARY_DIR}`")
+    message(STATUS
+        "Registering installed module `${module_name}`
+        with interface ${MODULE_INTERFACE},
+        library `${MODULE_LIBRARY}`,
+        within directory: `${MODULE_LIBRARY_DIR}`")
 
     add_custom_target(${module_name} ${asAll})
 
@@ -465,6 +472,7 @@ function(add_target_from_modules target_name)
         DEPENDS
         ${link_pcms}
         ${true_link_objects}
+        # TODO true link library files
         )
 
     add_custom_target(
