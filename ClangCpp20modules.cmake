@@ -19,11 +19,31 @@ set(PREBUILT_MODULE_EXECUTABLE_PATH
     CACHE INTERNAL
     "PREBUILT_MODULE_EXECUTABLE_PATH")
 
+function(get_include_flags inc_dirs out)
+
+    foreach(INPUT_DIR ${inc_dirs})
+        if (IS_ABSOLUTE ${INPUT_DIR})
+            list(APPEND inc_flags "-I${INPUT_DIR}")
+        else()
+            list(APPEND inc_flags "-I${CMAKE_SOURCE_DIR}/${INPUT_DIR}")
+        endif()
+    endforeach()
+
+    set(${out} ${inc_flags} PARENT_SCOPE)
+
+endfunction()
+
 function(get_modules_flags imp_modules_flags modules)
 
     set(flags "")
     foreach(INPUT_MOD ${modules})
-        list(APPEND flags "-fmodule-file=${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}}")
+        if (IS_ABSOLUTE ${module2interface_${INPUT_MOD}})
+            message(STATUS "${module2interface_${INPUT_MOD}} IS ABSOLUTE")
+            list(APPEND flags "-fmodule-file=${module2interface_${INPUT_MOD}}")
+        else()
+            message(STATUS "${module2interface_${INPUT_MOD}} IS RELATIVE")
+            list(APPEND flags "-fmodule-file=${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}}")
+        endif()
     endforeach()
 
     string(REPLACE ";" " " space_flags ${flags})
@@ -80,7 +100,7 @@ function(add_implementations out_objects)
             -fmodules
             -fPIC
             "${import_modules_flags}"
-            "${include_flags}"
+            ${include_flags}
             -c ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
             -o "${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o"
             DEPENDS
@@ -97,17 +117,7 @@ function(add_implementations out_objects)
 
 endfunction()
 
-function(get_include_flags inc_dirs out)
-
-    foreach(INPUT_DIR ${inc_dirs})
-        list(APPEND inc_flags "-I${CMAKE_SOURCE_DIR}/${INPUT_DIR}")
-    endforeach()
-
-    set(${out} ${inc_flags} PARENT_SCOPE)
-
-endfunction()
-
-function(add_module_interface module)
+function(add_module_interface module_name)
 
     # set(options OPT1 OPT2)
     set(oneValueArgs INTERFACE)
@@ -116,16 +126,30 @@ function(add_module_interface module)
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV}) 
 
+    message(STATUS "MODULE INTERFACE INCLUDES: ${MODULE_INCLUDES}")
+
+    if ("${MODULE_INCLUDES}" STREQUAL "")
+        # do nothing
+    else()
+        get_include_flags(${MODULE_INCLUDES} include_flags)
+        message(STATUS "ADDING INCLUDE FLAGS ${include_flags}")
+    endif()
+
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_INTERFACE_PATH})
 
     # ---- For each input module Add objects to link (precompiled interface and object module implementations)
     foreach(INPUT_MOD ${MODULE_DEPENDS})
-        list(APPEND link_pcms "-fmodule-file=${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}}")
-        list(APPEND list_pcms ${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}})
+        if (IS_ABSOLUTE ${module2interface_${INPUT_MOD}})
+            # nothing
+        else()
+            set(ROOT_PATH ${PREBUILT_MODULE_INTERFACE_PATH}/)
+        endif()
+        list(APPEND link_pcms "-fmodule-file=${ROOT_PATH}${module2interface_${INPUT_MOD}}")
+        list(APPEND list_pcms ${ROOT_PATH}${module2interface_${INPUT_MOD}})
     endforeach()
 
     foreach(IP ${link_pcms})
-        message(STATUS "`${module}` module interface depends on module interface ${IP}")
+        message(STATUS "`${module_name}` module interface depends on module interface ${IP}")
     endforeach()
 
     get_filename_component(
@@ -148,6 +172,7 @@ function(add_module_interface module)
         -fmodules
         -fPIC
         --precompile ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}
+        ${include_flags}
         ${link_pcms}
         -o ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm
         DEPENDS
@@ -181,14 +206,14 @@ function(add_module_interface module)
 
     endif()
 
-    set(module2interface_${module} 
+    set(module2interface_${module_name}
         ${MODULE_INTERFACE}.pcm
         CACHE INTERNAL
-        "module2interface_${module}")
+        "module2interface_${module_name}")
 
 endfunction()
 
-function(add_module_implementations module)
+function(add_module_implementations module_name)
 
     # set(options OPT1 OPT2)
     # set(oneValueArgs INTERFACE)
@@ -204,14 +229,14 @@ function(add_module_implementations module)
         SOURCES
         ${MODULE_SOURCES}
         DEPENDS
-        "${module};${MODULE_DEPENDS}"
+        "${module_name};${MODULE_DEPENDS}"
         INCLUDES
         ${MODULE_INCLUDES}
         )
 
     set_property(
         GLOBAL PROPERTY
-        module2implementations_${module} 
+        module2implementations_${module_name}
         "${out_objs}")
 
 endfunction()
@@ -236,7 +261,7 @@ function(add_module module_name)
         DEPENDS
         ${MODULE_DEPENDS}
         INCLUDES
-        ${INCLUDES})
+        ${MODULE_INCLUDES})
 
     if ("${MODULE_SOURCES}" STREQUAL "")
         #nothing
@@ -268,6 +293,49 @@ function(add_module module_name)
         ${impls}
         ${MODULE_DEPENDS}
         )
+
+endfunction()
+
+# ---- Register an already installed module
+function(register_module module_name)
+
+    set(multiValueArgs INTERFACE LIBRARY LIBRARY_DIR)
+
+    cmake_parse_arguments(MODULE
+        "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGV})
+
+    if (EXISTS "${MODULE_INTERFACE}")
+        # OK
+    else()
+        message(FATAL_ERROR "Not existing module interface ${MODULE_INTERFACE}")
+    endif()
+
+    set(module2interface_${module_name}
+        ${MODULE_INTERFACE}
+        CACHE INTERNAL
+        "module2interface_${module_name}")
+
+    if ("${MODULE_LIBRARY}" STREQUAL "")
+        # nothing
+    else()
+        set(library2linkflag_${MODULE_LIBRARY}
+            "-l${MODULE_LIBRARY}"
+            CACHE INTERNAL
+            "library2linkflag_${target_name}")
+    endif()
+
+    if ("${MODULE_LIBRARY_DIR}" STREQUAL "")
+        # nothing
+    else()
+        set(library2directory_${MODULE_LIBRARY}
+            "-L${MODULE_LIBRARY_DIR}"
+            CACHE INTERNAL
+            "library2directory_${MODULE_LIBRARY}")
+    endif()
+
+    message(STATUS "Registering installed module `${module_name}` with interface ${MODULE_INTERFACE}, library `${MODULE_LIBRARY}`, within directory: `${MODULE_LIBRARY_DIR}`")
+
+    add_custom_target(${module_name} ${asAll})
 
 endfunction()
 
@@ -345,6 +413,11 @@ function(add_target_from_modules target_name)
             GLOBAL PROPERTY
             library2implementations_${target_name}
             "${list_link_objects}")
+
+        set(library2directory_${target_name}
+            "-L${PREBUILT_MODULE_LIBRARY_PATH}"
+            CACHE INTERNAL
+            "library2directory_${MODULE_LIBRARY}")
     endif()
 
     # ---- Create list of link libraries
@@ -354,6 +427,8 @@ function(add_target_from_modules target_name)
         get_property(lib_impls
             GLOBAL PROPERTY
             library2implementations_${TLIB})
+
+        list(APPEND link_dirs ${library2directory_${TARGET_LIBRARY}})
 
         foreach(LO ${lib_impls})
             list(REMOVE_ITEM true_link_objects ${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${LO})
@@ -381,7 +456,8 @@ function(add_target_from_modules target_name)
         ${CMAKE_CXX_COMPILER}
         ${type_flag}
         -stdlib=libc++
-        -L${PREBUILT_MODULE_LIBRARY_PATH}
+        # -L${PREBUILT_MODULE_LIBRARY_PATH}
+        ${link_dirs}
         ${link_pcms}
         ${true_link_objects}
         ${link_libraries}

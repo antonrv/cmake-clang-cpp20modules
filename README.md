@@ -56,7 +56,7 @@ add_module(
     <INPUT_MODULE_NAME1>
     <INPUT_MODULE_NAME2>
     <...>
-    INCLUDES # directories holding header files
+    INCLUDES # directories holding header files needed by the module sources
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
     <...>
@@ -88,6 +88,22 @@ add_target_from_modules(
     <...>)
 ```
 
+### `register_modules`
+
+This function is used to register an existing externally compiled module in the form of a
+precompiled module interface and (optionally) a shared library located in `LIBRARY_DIR`.
+
+```cmake
+register_module(
+    <MODULE_NAME>
+    INTERFACE
+    <INTERFACE_FILE> # Precompiled interface file
+    LIBRARY_DIR
+    <LIBRARY_DIRECTORY> # Directory containing the library
+    LIBRARY
+    <LIBRARY_NAME> # Assumed existence of file <LIBRARY_DIRECTORY>/lib<LIBRARY_NAME>.so
+    )
+```
 
 ## Testing samples
 
@@ -120,4 +136,33 @@ Testing [PATH]/cmake-clang-cpp20modules/samples/1module-noimpl/ 	OK
 Testing [PATH]/cmake-clang-cpp20modules/samples/2modules-impls/ 	OK
 Testing [PATH]/cmake-clang-cpp20modules/samples/2modules-impls-lib/ 	OK
 Testing [PATH]/cmake-clang-cpp20modules/samples/2modules-noimpl/ 	OK
+```
+
+## CMake-like install
+
+Any built library or executable can be installed with a command like
+
+```cmake
+install(
+    FILES
+    ${PREBUILT_MODULE_LIBRARY_PATH}/lib<LibraryName>.so
+    DESTINATION lib
+    )
+```
+
+```cmake
+install(
+    FILES
+    ${PREBUILT_MODULE_EXECUTABLE_PATH}/ExecutableName
+    DESTINATION bin
+    )
+```
+
+Library interfaces can be installed into a custom `api/` directory within the install directory by:
+
+```cmake
+install(
+    FILES
+    ${PREBUILT_MODULE_INTERFACE_PATH}/<SOURCE_PATH>/LibraryInterface.cppm.pcm
+    DESTINATION api)
 ```
