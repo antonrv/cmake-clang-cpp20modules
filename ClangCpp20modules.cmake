@@ -19,7 +19,7 @@ set(PREBUILT_MODULE_EXECUTABLE_PATH
     CACHE INTERNAL
     "PREBUILT_MODULE_EXECUTABLE_PATH")
 
-function(get_include_flags inc_dirs out)
+function(get_include_flags inc_dirs include_flags)
 
     foreach(INPUT_DIR ${inc_dirs})
         if (IS_ABSOLUTE ${INPUT_DIR})
@@ -29,26 +29,31 @@ function(get_include_flags inc_dirs out)
         endif()
     endforeach()
 
-    set(${out} ${inc_flags} PARENT_SCOPE)
+    set(${include_flags} ${inc_flags} PARENT_SCOPE)
 
 endfunction()
 
-function(get_modules_flags imp_modules_flags modules)
+function(get_modules_flags import_modules_flags import_modules_interfaces modules)
 
     set(flags "")
+    set(interfaces "")
     foreach(INPUT_MOD ${modules})
         if (IS_ABSOLUTE ${module2interface_${INPUT_MOD}})
-            message(STATUS "${module2interface_${INPUT_MOD}} IS ABSOLUTE")
             list(APPEND flags "-fmodule-file=${module2interface_${INPUT_MOD}}")
+            list(APPEND interfaces ${module2interface_${INPUT_MOD}})
         else()
-            message(STATUS "${module2interface_${INPUT_MOD}} IS RELATIVE")
             list(APPEND flags "-fmodule-file=${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}}")
+            list(APPEND interfaces ${PREBUILT_MODULE_INTERFACE_PATH}/${module2interface_${INPUT_MOD}})
         endif()
     endforeach()
 
-    string(REPLACE ";" " " space_flags ${flags})
-
-    set(${imp_modules_flags} ${space_flags} PARENT_SCOPE)
+    # string(REPLACE ";" " " space_flags ${flags})
+    # string(REPLACE ";" " " space_interfaces ${interfaces})
+    #
+    # set(${import_modules_flags} ${space_flags} PARENT_SCOPE)
+    # set(${import_modules_interfaces} ${space_interfaces} PARENT_SCOPE)
+    set(${import_modules_flags} ${flags} PARENT_SCOPE)
+    set(${import_modules_interfaces} ${interfaces} PARENT_SCOPE)
 
 endfunction()
 
@@ -65,7 +70,7 @@ function(add_implementations out_objects)
     if ("${OBJ_DEPENDS}" STREQUAL "")
         # Do nothing
     else()
-        get_modules_flags(import_modules_flags ${OBJ_DEPENDS})
+        get_modules_flags(import_modules_flags import_modules_interfaces "${OBJ_DEPENDS}")
     endif()
 
     # ---- Add flags to include dirs with headers
@@ -99,14 +104,14 @@ function(add_implementations out_objects)
             -stdlib=libc++
             -fmodules
             -fPIC
-            "${import_modules_flags}"
+            ${import_modules_flags}
             ${include_flags}
             -c ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
             -o "${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o"
             DEPENDS
             ${module2interface_${IMPORT_MODULE}}
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
-            # TODO all imported module interfaces
+            ${import_modules_interfaces}
             )
 
         list(APPEND
@@ -128,13 +133,11 @@ function(add_module_interface module_name)
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV}) 
 
-    message(STATUS "MODULE INTERFACE INCLUDES: ${MODULE_INCLUDES}")
-
+    set(include_flags "")
     if ("${MODULE_INCLUDES}" STREQUAL "")
         # do nothing
     else()
-        get_include_flags(${MODULE_INCLUDES} include_flags)
-        message(STATUS "ADDING INCLUDE FLAGS ${include_flags}")
+        get_include_flags("${MODULE_INCLUDES}" include_flags)
     endif()
 
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_INTERFACE_PATH})
@@ -142,7 +145,7 @@ function(add_module_interface module_name)
     # ---- For each input module Add objects to link (precompiled interface and object module implementations)
     foreach(INPUT_MOD ${MODULE_DEPENDS})
         if (IS_ABSOLUTE ${module2interface_${INPUT_MOD}})
-            # nothing
+            set(ROOT_PATH "")
         else()
             set(ROOT_PATH ${PREBUILT_MODULE_INTERFACE_PATH}/)
         endif()
@@ -151,7 +154,7 @@ function(add_module_interface module_name)
     endforeach()
 
     foreach(IP ${link_pcms})
-        message(STATUS "`${module_name}` module interface depends on module interface ${IP}")
+        message(STATUS "Module `${module_name}` depends on module interface ${IP}")
     endforeach()
 
     get_filename_component(
@@ -325,6 +328,7 @@ function(register_module module_name)
             CACHE INTERNAL
             "library2linkflag_${MODULE_LIBRARY}")
         add_custom_target(${MODULE_LIBRARY} ${asAll})
+        set(LIBRARY_FULL_PATH "${MODULE_LIBRARY_DIR}/lib${MODULE_LIBRARY}.so")
     endif()
 
     if ("${MODULE_LIBRARY_DIR}" STREQUAL "")
@@ -342,7 +346,11 @@ function(register_module module_name)
         library `${MODULE_LIBRARY}`,
         within directory: `${MODULE_LIBRARY_DIR}`")
 
-    add_custom_target(${module_name} ${asAll})
+    add_custom_target(${module_name} ${asAll}
+        DEPENDS
+        ${MODULE_INTERFACE}
+        ${LIBRARY_FULL_PATH}
+        )
 
 endfunction()
 
@@ -395,7 +403,8 @@ function(add_target_from_modules target_name)
     add_implementations(in_objs
         SOURCES
         ${TARGET_SOURCES}
-        DEPENDS ${TARGET_DEPENDS}
+        DEPENDS
+        ${TARGET_DEPENDS}
         INCLUDES
         ${TARGET_INCLUDES})
 
@@ -405,6 +414,7 @@ function(add_target_from_modules target_name)
 
     # ---- Create list of precompiled modules
     foreach(PCM ${list_link_pcms})
+        message(STATUS "Target ${target_name} associated to PCM: ${PCM}")
         list(APPEND link_pcms ${PREBUILT_MODULE_INTERFACE_PATH}/${PCM})
     endforeach()
 
@@ -472,7 +482,6 @@ function(add_target_from_modules target_name)
         DEPENDS
         ${link_pcms}
         ${true_link_objects}
-        # TODO true link library files
         )
 
     add_custom_target(
