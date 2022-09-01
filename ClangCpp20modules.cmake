@@ -1,21 +1,31 @@
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+    set(BUILD_FLAGS "")
+    set(BUILD_DIR "")
+else()
+    message(STATUS "Build type: ${upper_build_type}")
+    string(TOUPPER ${CMAKE_BUILD_TYPE} upper_build_type)
+    string(TOLOWER ${CMAKE_BUILD_TYPE} lower_build_type)
+    string(REPLACE " " ";" BUILD_FLAGS ${CMAKE_CXX_FLAGS_${upper_build_type}})
+    set(BUILD_DIR "${lower_build_type}")
+endif()
 
 set(PREBUILT_MODULE_INTERFACE_PATH 
-    ${CMAKE_BINARY_DIR}/modules/intf
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/intf
     CACHE INTERNAL
     "PREBUILT_MODULE_INTERFACE_PATH")
 
 set(PREBUILT_MODULE_IMPLEMENTATION_PATH 
-    ${CMAKE_BINARY_DIR}/modules/impl
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/impl
     CACHE INTERNAL
     "PREBUILT_MODULE_IMPLEMENTATION_PATH")
 
 set(PREBUILT_MODULE_LIBRARY_PATH 
-    ${CMAKE_BINARY_DIR}/modules/lib
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/lib
     CACHE INTERNAL
     "PREBUILT_MODULE_LIBRARY_PATH")
 
 set(PREBUILT_MODULE_EXECUTABLE_PATH 
-    ${CMAKE_BINARY_DIR}/modules/bin
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/bin
     CACHE INTERNAL
     "PREBUILT_MODULE_EXECUTABLE_PATH")
 
@@ -47,11 +57,6 @@ function(get_modules_flags import_modules_flags import_modules_interfaces module
         endif()
     endforeach()
 
-    # string(REPLACE ";" " " space_flags ${flags})
-    # string(REPLACE ";" " " space_interfaces ${interfaces})
-    #
-    # set(${import_modules_flags} ${space_flags} PARENT_SCOPE)
-    # set(${import_modules_interfaces} ${space_interfaces} PARENT_SCOPE)
     set(${import_modules_flags} ${flags} PARENT_SCOPE)
     set(${import_modules_interfaces} ${interfaces} PARENT_SCOPE)
 
@@ -100,6 +105,7 @@ function(add_implementations out_objects)
             ${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o
             COMMAND
             ${CMAKE_CXX_COMPILER}
+            ${BUILD_FLAGS}
             -std=c++20
             -stdlib=libc++
             -fmodules
@@ -166,12 +172,14 @@ function(add_module_interface module_name)
 
     message(STATUS "Adding target implementation ${target_name}")
 
+
     # ---- Add pcm target
     add_custom_command(
         OUTPUT
         ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm
         COMMAND
         ${CMAKE_CXX_COMPILER}
+        ${BUILD_FLAGS}
         -std=c++20
         -stdlib=libc++
         -fmodules
@@ -471,9 +479,9 @@ function(add_target_from_modules target_name)
         ${target_binary}
         COMMAND
         ${CMAKE_CXX_COMPILER}
+        ${BUILD_FLAGS}
         ${type_flag}
         -stdlib=libc++
-        # -L${PREBUILT_MODULE_LIBRARY_PATH}
         ${link_dirs}
         ${link_pcms}
         ${true_link_objects}
