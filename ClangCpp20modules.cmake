@@ -9,13 +9,18 @@ else()
     set(BUILD_DIR "${lower_build_type}")
 endif()
 
+set(PREBUILT_MODULE_CACHE_PATH
+    $ENV{HOME}/.cache/clang/ModuleCache/${BUILD_DIR}
+    CACHE INTERNAL
+    "PREBUILT_MODULE_CACHE_PATH")
+
 set(PREBUILT_MODULE_INTERFACE_PATH 
-    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/intf
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/pcm
     CACHE INTERNAL
     "PREBUILT_MODULE_INTERFACE_PATH")
 
 set(PREBUILT_MODULE_IMPLEMENTATION_PATH 
-    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/impl
+    ${CMAKE_BINARY_DIR}/${BUILD_DIR}/obj
     CACHE INTERNAL
     "PREBUILT_MODULE_IMPLEMENTATION_PATH")
 
@@ -66,7 +71,7 @@ function(add_implementations out_objects)
 
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_IMPLEMENTATION_PATH})
 
-    set(multiValueArgs SOURCES DEPENDS INCLUDES)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES FLAGS)
     cmake_parse_arguments(OBJ "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
 
@@ -90,7 +95,6 @@ function(add_implementations out_objects)
     foreach(SRC ${OBJ_SOURCES})
 
         set(target_name ${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o)
-
         message(STATUS "Adding target implementation ${target_name}")
 
         get_filename_component(
@@ -106,17 +110,19 @@ function(add_implementations out_objects)
             COMMAND
             ${CMAKE_CXX_COMPILER}
             ${BUILD_FLAGS}
+            -fmodules-cache-path=${PREBUILT_MODULE_CACHE_PATH}
             -std=c++20
             -stdlib=libc++
             -fmodules
             -fPIC
+            ${OBJ_FLAGS}
             ${import_modules_flags}
             ${include_flags}
-            -c ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
+            -c ${CMAKE_SOURCE_DIR}/${SRC}
             -o "${PREBUILT_MODULE_IMPLEMENTATION_PATH}/${SRC}.o"
             DEPENDS
             ${module2interface_${IMPORT_MODULE}}
-            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC}
+            ${CMAKE_SOURCE_DIR}/${SRC}
             ${import_modules_interfaces}
             )
 
@@ -170,9 +176,6 @@ function(add_module_interface module_name)
 
     file(MAKE_DIRECTORY ${this_dir})
 
-    message(STATUS "Adding target implementation ${target_name}")
-
-
     # ---- Add pcm target
     add_custom_command(
         OUTPUT
@@ -180,18 +183,20 @@ function(add_module_interface module_name)
         COMMAND
         ${CMAKE_CXX_COMPILER}
         ${BUILD_FLAGS}
+        -fmodules-cache-path=${PREBUILT_MODULE_CACHE_PATH}
         -std=c++20
         -stdlib=libc++
         -fmodules
         -fPIC
-        --precompile ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}
+        --precompile ${CMAKE_SOURCE_DIR}/${MODULE_INTERFACE}
         ${include_flags}
         ${link_pcms}
         -o ${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm
         DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}
+        ${CMAKE_SOURCE_DIR}/${MODULE_INTERFACE}
         ${list_pcms}
         )
+    message(STATUS "Module `${module_name}` depends on module interface ${CMAKE_SOURCE_DIR}/${MODULE_INTERFACE}")
 
     if ("${CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "ON")
 
@@ -206,13 +211,13 @@ function(add_module_interface module_name)
             "            \"-fmodules\",\n"
             "            \"-fPIC\",\n"
             "            \"--precompile\",\n"
-            "            \"${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
+            "            \"${CMAKE_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
             "            \"${link_pcms}\",\n"
             "            \"-o\",\n"
             "            \"${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm\"\n"
             "        ],\n"
             "        \"directory\": \"${CMAKE_BINARY_DIR}\",\n"
-            "        \"file\": \"${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
+            "        \"file\": \"${CMAKE_SOURCE_DIR}/${MODULE_INTERFACE}\",\n"
             "        \"output\": \"${PREBUILT_MODULE_INTERFACE_PATH}/${MODULE_INTERFACE}.pcm\"\n"
             "    }\n"
             "]\n")
@@ -230,7 +235,7 @@ function(add_module_implementations module_name)
 
     # set(options OPT1 OPT2)
     # set(oneValueArgs INTERFACE)
-    set(multiValueArgs SOURCES DEPENDS INCLUDES)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES FLAGS)
 
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
@@ -245,6 +250,8 @@ function(add_module_implementations module_name)
         "${module_name};${MODULE_DEPENDS}"
         INCLUDES
         ${MODULE_INCLUDES}
+        FLAGS
+        ${MODULE_FLAGS}
         )
 
     set_property(
@@ -257,8 +264,8 @@ endfunction()
 function(add_module module_name)
 
     # set(options OPTIONAL FAST)
-    set(oneValueArgs INTERFACE)
-    set(multiValueArgs SOURCES DEPENDS INCLUDES TYPE)
+    set(oneValueArgs INTERFACE TYPE)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES FLAGS)
 
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
@@ -274,7 +281,10 @@ function(add_module module_name)
         DEPENDS
         ${MODULE_DEPENDS}
         INCLUDES
-        ${MODULE_INCLUDES})
+        ${MODULE_INCLUDES}
+        FLAGS
+        ${MODULE_FLAGS}
+        )
 
     if ("${MODULE_SOURCES}" STREQUAL "")
         #nothing
@@ -285,7 +295,10 @@ function(add_module module_name)
             DEPENDS
             ${MODULE_DEPENDS}
             INCLUDES
-            ${MODULE_INCLUDES})
+            ${MODULE_INCLUDES}
+            FLAGS
+            ${MODULE_FLAGS}
+            )
     endif()
 
     get_property(impls
@@ -366,7 +379,7 @@ function(add_target_from_modules target_name)
 
     # set(options OPTIONAL FAST)
     set(oneValueArgs TYPE)
-    set(multiValueArgs SOURCES DEPENDS INCLUDES LIBRARY)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES LIBRARY FLAGS)
 
     cmake_parse_arguments(TARGET
         "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGV})
@@ -414,7 +427,10 @@ function(add_target_from_modules target_name)
         DEPENDS
         ${TARGET_DEPENDS}
         INCLUDES
-        ${TARGET_INCLUDES})
+        ${TARGET_INCLUDES}
+        FLAGS
+        ${TARGET_FLAGS}
+        )
 
     foreach(in_obj ${in_objs})
         list(APPEND list_link_objects "${in_obj}")
