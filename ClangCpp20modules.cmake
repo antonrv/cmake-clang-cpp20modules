@@ -75,6 +75,7 @@ function(add_implementations out_objects)
     cmake_parse_arguments(OBJ "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV})
 
+
     # ---- Add flags to include input module interfaces
     set(import_modules_flags "")
     if ("${OBJ_DEPENDS}" STREQUAL "")
@@ -88,7 +89,7 @@ function(add_implementations out_objects)
     if ("${OBJ_INCLUDES}" STREQUAL "")
         # Do nothing
     else()
-        get_include_flags(${OBJ_INCLUDES} include_flags)
+        get_include_flags("${OBJ_INCLUDES}" include_flags)
     endif()
 
     # ---- Add a custom target for each module implementation
@@ -140,7 +141,7 @@ function(add_module_interface module_name)
 
     # set(options OPT1 OPT2)
     set(oneValueArgs INTERFACE)
-    set(multiValueArgs SOURCES DEPENDS INCLUDES)
+    set(multiValueArgs SOURCES DEPENDS INCLUDES FLAGS)
 
     cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGV}) 
@@ -183,6 +184,7 @@ function(add_module_interface module_name)
         COMMAND
         ${CMAKE_CXX_COMPILER}
         ${BUILD_FLAGS}
+        ${MODULE_FLAGS}
         -fmodules-cache-path=${PREBUILT_MODULE_CACHE_PATH}
         -std=c++20
         -stdlib=libc++
