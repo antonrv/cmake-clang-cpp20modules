@@ -2,7 +2,7 @@ module;
 
 #include "foo.h"
 
-module helloworld;
+module helloworld2;
 
 import <iostream>;
 

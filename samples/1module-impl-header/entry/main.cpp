@@ -1,4 +1,4 @@
-import helloworld;  // import declaration
+import helloworld2;
 
 int main() {
     hello();
