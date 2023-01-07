@@ -26,7 +26,7 @@ Tested on:
 
 * ubuntu 22.04
 * cmake 3.22.1
-* clang 14
+* clang 14 and 15
 * bear 3.0.18
 * jq 1.6
 
@@ -60,8 +60,10 @@ add_module(
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
     <...>
-    TYPE # If PUBLIC, interface will be compiled always (as an ALL target)
-    <PUBLIC|PRIVATE|>
+    FLAGS # Compilation flags for this module
+    <FLAG1>
+    <FLAG2>
+    <...>
     )
 ```
 
@@ -85,7 +87,20 @@ add_target_from_modules(
     INCLUDES # directories holding header files
     <INCLUDE_DIR1>
     <INCLUDE_DIR2>
-    <...>)
+    <...>
+    LIBRARY # Names of libraries to be linked
+    <LIBRARY_NAME1>
+    <LIBRARY_NAME2>
+    <...>
+    LIBRARY_DIR # Library directories of previous libraries
+    <LIBRARY_DIR1>
+    <LIBRARY_DIR2>
+    <...>
+    FLAGS # Compilation flags for this target
+    <FLAG1>
+    <FLAG2>
+    <...>
+    )
 ```
 
 ### `register_modules`
