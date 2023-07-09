@@ -116,7 +116,7 @@ function(add_implementations out_objects)
             ${CMAKE_CXX_COMPILER}
             ${BUILD_FLAGS}
             -isystem
-            /usr/lib/llvm-15/include/c++/v1
+            /usr/lib/llvm-16/include/c++/v1
             -fmodules-cache-path=${PREBUILT_MODULE_CACHE_PATH}
             -std=c++20
             -stdlib=libc++
@@ -192,7 +192,7 @@ function(add_module_interface module_name)
         ${CMAKE_CXX_COMPILER}
         ${BUILD_FLAGS}
         -isystem
-        /usr/lib/llvm-15/include/c++/v1
+        /usr/lib/llvm-16/include/c++/v1
         ${MODULE_FLAGS}
         -fmodules-cache-path=${PREBUILT_MODULE_CACHE_PATH}
         -std=c++20
@@ -583,10 +583,10 @@ function(add_target_from_modules target_name)
         ${CMAKE_CXX_COMPILER}
         ${BUILD_FLAGS}
         -isystem
-        /usr/lib/llvm-15/include/c++/v1
-        -fuse-ld=/usr/lib/llvm-15/bin/ld.lld
+        /usr/lib/llvm-16/include/c++/v1
+        -fuse-ld=/usr/lib/llvm-16/bin/ld.lld
         ${type_flag}
-        -L/usr/lib/llvm-15/lib
+        -L/usr/lib/llvm-16/lib
         -nodefaultlibs
         -lc++
         -lc++abi
