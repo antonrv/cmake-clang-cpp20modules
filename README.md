@@ -26,7 +26,7 @@ Tested on:
 
 * ubuntu 22.04
 * cmake 3.22.1
-* clang 14 and 15
+* clang 16
 * bear 3.0.18
 * jq 1.6
 
